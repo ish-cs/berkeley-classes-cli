@@ -252,6 +252,7 @@ See README.md or the bundled SKILL.md for recipes.`,
 	rootCmd.AddCommand(newAPICmd(flags))
 	rootCmd.AddCommand(newFacetsPromotedCmd(flags))
 	rootCmd.AddCommand(newVersionCmd())
+	rootCmd.AddCommand(newPushCmd(flags))
 	rootCmd.AddCommand(newSearchRealCmd(flags))
 	rootCmd.AddCommand(newTermsCmd(flags))
 	rootCmd.AddCommand(newSubjectsCmd(flags))
