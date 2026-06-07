@@ -62,7 +62,14 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: ./berkeley-classes push
+        run: ./berkeley-classes push --with-snapshots
+
+      - name: Ingest course meta from Berkeleytime
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        continue-on-error: true
+        run: ./berkeley-classes ingest-meta --concurrency 4
 
       - name: Notify watch subscribers
         env:
