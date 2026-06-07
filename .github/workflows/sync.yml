@@ -1,0 +1,53 @@
+name: Sync Berkeley classes to Supabase
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+
+      - name: Build berkeley-classes
+        run: go build -o berkeley-classes ./cmd/berkeley-classes
+
+      - name: Sync all subjects
+        run: |
+          subjects=(
+            'Computer Science'
+            'Mathematics'
+            'Electrical Engin and Computer Sci'
+            'Economics'
+            'Statistics'
+            'Physics'
+            'English'
+            'History'
+            'College Writing Programs'
+            'Earth and Planetary Science'
+            'Data Science'
+            'Mechanical Engineering'
+            'Chemistry'
+            'Molecular & Cell Biology'
+            'Cognitive Science'
+          )
+          for s in "${subjects[@]}"; do
+            echo "::group::Sync $s"
+            ./berkeley-classes sync --term 'Fall 2026' --subject "$s" --max-pages 50
+            echo "::endgroup::"
+          done
+
+      - name: Push to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: ./berkeley-classes push

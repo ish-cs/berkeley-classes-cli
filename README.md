@@ -234,6 +234,19 @@ There is no Berkeley API key required. No login. No private data. Everything `be
 
 ---
 
+## Automated daily sync (GitHub Actions)
+
+This repo ships a workflow at `.github/workflows/sync.yml` that runs daily at 09:00 UTC (and on-demand via `workflow_dispatch`). It syncs the main undergrad subjects for the current term into SQLite, then pushes the result to Supabase via PostgREST.
+
+To enable it on your fork, set two repository secrets under **Settings → Secrets and variables → Actions → New repository secret**:
+
+- `SUPABASE_URL` — your project URL, e.g. `https://abcdefgh.supabase.co`
+- `SUPABASE_SERVICE_KEY` — the **service role** key (not the anon key). Required to bypass RLS on upserts.
+
+Trigger a manual run from the **Actions** tab → **Sync Berkeley classes to Supabase** → **Run workflow**.
+
+---
+
 ## Contributing
 
 Found a bug? Missing a feature? Open an issue or PR. This is for Berkeley students by a Berkeley student.
