@@ -23,31 +23,52 @@ jobs:
 
       - name: Sync all subjects
         run: |
+          set +e  # one subject failing must not skip the rest or the push
+          failures=0
           subjects=(
             'Computer Science'
+            'Electrical Engineering and Computer Sciences'
             'Mathematics'
-            'Electrical Engin and Computer Sci'
-            'Economics'
             'Statistics'
+            'Data Science'
+            'Computing, Data Science, and Society'
+            'Economics'
             'Physics'
+            'Chemistry'
+            'Mechanical Engineering'
+            'Molecular and Cell Biology'
+            'Cognitive Science'
             'English'
             'History'
             'College Writing Programs'
             'Earth and Planetary Science'
-            'Data Science'
-            'Mechanical Engineering'
-            'Chemistry'
-            'Molecular & Cell Biology'
-            'Cognitive Science'
           )
           for s in "${subjects[@]}"; do
             echo "::group::Sync $s"
-            ./berkeley-classes sync --term 'Fall 2026' --subject "$s" --max-pages 50
+            if ! ./berkeley-classes sync --term 'Fall 2026' --subject "$s" --max-pages 50; then
+              echo "::warning::sync failed for $s"
+              failures=$((failures + 1))
+            fi
             echo "::endgroup::"
           done
+          echo "Per-subject failures: $failures"
+          # Don't exit non-zero unless EVERY subject failed
+          if [ "$failures" -ge "${#subjects[@]}" ]; then
+            echo "::error::All subjects failed"
+            exit 1
+          fi
 
       - name: Push to Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: ./berkeley-classes push
+
+      - name: Notify watch subscribers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_FROM_EMAIL: ${{ vars.NOTIFY_FROM_EMAIL }}
+          NOTIFY_BASE_URL: ${{ vars.NOTIFY_BASE_URL }}
+        run: ./berkeley-classes notify
