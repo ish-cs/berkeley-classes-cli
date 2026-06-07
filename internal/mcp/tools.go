@@ -1,0 +1,457 @@
+// Copyright 2026 ish-cs. MIT License. See LICENSE.
+
+package mcp
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/ish-cs/bcourses-cli/internal/cli"
+	"github.com/ish-cs/bcourses-cli/internal/client"
+	"github.com/ish-cs/bcourses-cli/internal/config"
+	"github.com/ish-cs/bcourses-cli/internal/mcp/cobratree"
+	"github.com/ish-cs/bcourses-cli/internal/store"
+	mcplib "github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
+)
+
+// RegisterTools registers all API operations as MCP tools.
+func RegisterTools(s *server.MCPServer) {
+	s.AddTool(
+		mcplib.NewTool("facets_list",
+			mcplib.WithDescription("Fetch the homepage facet sidebar listing all current terms and subject areas. Returns the FacetSnapshot."),
+			mcplib.WithReadOnlyHintAnnotation(true),
+			mcplib.WithDestructiveHintAnnotation(false),
+			mcplib.WithOpenWorldHintAnnotation(true),
+		),
+		makeAPIHandler("GET", "/", true, false, nil, []mcpParamBinding{}, []string{}),
+	)
+	s.AddTool(
+		mcplib.NewTool("sections_get",
+			mcplib.WithDescription("Get a section by its detail-page slug, e.g. '2026-fall-compsci-61a-001-lec-001'. Required: slug. Returns the SectionDetail."),
+			mcplib.WithString("slug", mcplib.Required(), mcplib.Description("Section detail slug from class URL")),
+			mcplib.WithReadOnlyHintAnnotation(true),
+			mcplib.WithDestructiveHintAnnotation(false),
+			mcplib.WithOpenWorldHintAnnotation(true),
+		),
+		makeAPIHandler("GET", "/content/{slug}", true, false, nil, []mcpParamBinding{{PublicName: "slug", WireName: "slug", Location: "path"}}, []string{"slug"}),
+	)
+	s.AddTool(
+		mcplib.NewTool("sections_list",
+			mcplib.WithDescription("Fetch the raw HTML search results for keyword + facet filters. Optional: keywords, page (default: 0). Returns the SearchPage."),
+			mcplib.WithString("keywords", mcplib.Description("Search keywords (course code, title, instructor name)")),
+			mcplib.WithNumber("page", mcplib.Description("Result page (zero-indexed)")),
+			mcplib.WithReadOnlyHintAnnotation(true),
+			mcplib.WithDestructiveHintAnnotation(false),
+			mcplib.WithOpenWorldHintAnnotation(true),
+		),
+		makeAPIHandler("GET", "/search/class", true, false, nil, []mcpParamBinding{{PublicName: "keywords", WireName: "search", Location: "query"}, {PublicName: "page", WireName: "page", Location: "query"}}, []string{}),
+	)
+	// SQL tool — ad-hoc analysis on synced data without API calls
+	s.AddTool(
+		mcplib.NewTool("sql",
+			mcplib.WithDescription("Run read-only SQL against local database. Use for ad-hoc analysis, aggregations, and joins across synced resources. Requires sync first."),
+			mcplib.WithString("query", mcplib.Required(), mcplib.Description("SQL query (SELECT or WITH...SELECT). Tables match resource names.")),
+			mcplib.WithReadOnlyHintAnnotation(true),
+			mcplib.WithDestructiveHintAnnotation(false),
+		),
+		handleSQL,
+	)
+
+	// Context tool — front-loaded domain knowledge for agents.
+	// Call this first to understand the API taxonomy, query patterns, and capabilities.
+	s.AddTool(
+		mcplib.NewTool("context",
+			mcplib.WithDescription("Get API domain context: resource taxonomy, auth requirements, query tips, and unique capabilities. Call this first."),
+			mcplib.WithReadOnlyHintAnnotation(true),
+			mcplib.WithDestructiveHintAnnotation(false),
+		),
+		handleContext,
+	)
+
+	// Runtime Cobra-tree mirror — exposes every user-facing command that is
+	// not already covered by a typed endpoint or framework MCP tool.
+	cobratree.RegisterAll(s, cli.RootCmd(), cobratree.SiblingCLIPath)
+}
+
+type mcpParamBinding struct {
+	PublicName string
+	WireName   string
+	Location   string
+}
+
+// makeAPIHandler creates a generic MCP tool handler for an API endpoint.
+func makeAPIHandler(method, pathTemplate string, readOnly bool, binaryResponse bool, headerOverrides map[string]string, bindings []mcpParamBinding, positionalParams []string) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+		c, err := newMCPClient()
+		if err != nil {
+			return mcplib.NewToolResultError(err.Error()), nil
+		}
+
+		// mcp-go v0.47+ made CallToolParams.Arguments an `any` to support
+		// non-map payloads; GetArguments() returns the map[string]any shape
+		// we rely on here (or an empty map when the payload is something else).
+		args := req.GetArguments()
+
+		// positionalParams mixes real URL path params with CLI positional
+		// args that map to query params (e.g. `search <query>` -> ?query=);
+		// the placeholder check below disambiguates them at runtime.
+		path := pathTemplate
+		knownArgs := make(map[string]bool, len(bindings))
+		pathParams := make(map[string]bool, len(positionalParams))
+		params := make(map[string]string)
+		bodyArgs := make(map[string]any)
+		var headers map[string]string
+		if len(headerOverrides) > 0 {
+			headers = make(map[string]string, len(headerOverrides)+1)
+			for k, v := range headerOverrides {
+				headers[k] = v
+			}
+		}
+		if binaryResponse {
+			if headers == nil {
+				headers = map[string]string{}
+			}
+			headers[client.BinaryResponseHeader] = "true"
+		}
+		for _, binding := range bindings {
+			knownArgs[binding.PublicName] = true
+			v, ok := args[binding.PublicName]
+			if !ok {
+				continue
+			}
+			switch binding.Location {
+			case "path":
+				placeholder := "{" + binding.WireName + "}"
+				pathParams[binding.PublicName] = true
+				path = strings.Replace(path, placeholder, fmt.Sprintf("%v", v), 1)
+			case "body":
+				bodyArgs[binding.WireName] = v
+			default:
+				params[binding.WireName] = fmt.Sprintf("%v", v)
+			}
+		}
+		for _, p := range positionalParams {
+			placeholder := "{" + p + "}"
+			if !strings.Contains(pathTemplate, placeholder) {
+				continue
+			}
+			pathParams[p] = true
+			if v, ok := args[p]; ok {
+				path = strings.Replace(path, placeholder, fmt.Sprintf("%v", v), 1)
+			}
+		}
+
+		for k, v := range args {
+			if pathParams[k] || knownArgs[k] {
+				continue
+			}
+			switch method {
+			case "POST", "PUT", "PATCH":
+				bodyArgs[k] = v
+			default:
+				params[k] = fmt.Sprintf("%v", v)
+			}
+		}
+
+		var data json.RawMessage
+		switch method {
+		case "GET":
+			if len(headers) > 0 {
+				data, err = c.GetWithHeaders(ctx, path, params, headers)
+				break
+			}
+			data, err = c.Get(ctx, path, params)
+		case "POST":
+			if len(headers) > 0 {
+				if readOnly {
+					data, _, err = c.PostQueryWithParamsAndHeaders(ctx, path, params, bodyArgs, headers)
+				} else {
+					data, _, err = c.PostWithParamsAndHeaders(ctx, path, params, bodyArgs, headers)
+				}
+				break
+			}
+			if readOnly {
+				data, _, err = c.PostQueryWithParams(ctx, path, params, bodyArgs)
+			} else {
+				data, _, err = c.PostWithParams(ctx, path, params, bodyArgs)
+			}
+		case "PUT":
+			if len(headers) > 0 {
+				data, _, err = c.PutWithParamsAndHeaders(ctx, path, params, bodyArgs, headers)
+				break
+			}
+			data, _, err = c.PutWithParams(ctx, path, params, bodyArgs)
+		case "PATCH":
+			if len(headers) > 0 {
+				data, _, err = c.PatchWithParamsAndHeaders(ctx, path, params, bodyArgs, headers)
+				break
+			}
+			data, _, err = c.PatchWithParams(ctx, path, params, bodyArgs)
+		case "DELETE":
+			if len(headers) > 0 {
+				data, _, err = c.DeleteWithParamsAndHeaders(ctx, path, params, headers)
+				break
+			}
+			data, _, err = c.DeleteWithParams(ctx, path, params)
+		default:
+			return mcplib.NewToolResultError("unsupported method: " + method), nil
+		}
+
+		if err != nil {
+			msg := err.Error()
+			switch {
+			case strings.Contains(msg, "HTTP 409"):
+				return mcplib.NewToolResultText("already exists (no-op)"), nil
+			case strings.Contains(msg, "HTTP 401"):
+				return mcplib.NewToolResultError("authentication failed: " + msg +
+					"\nhint: check your API credentials." +
+					"\n      Run 'bcourses doctor' to check auth status."), nil
+			case strings.Contains(msg, "HTTP 403"):
+				return mcplib.NewToolResultError("permission denied: " + msg +
+					"\nhint: this API is configured without credentials; the service may be blocking the request by rate limit, geography, bot protection, or endpoint policy." +
+					"\n      Run 'bcourses doctor' to check auth status."), nil
+			case strings.Contains(msg, "HTTP 404"):
+				if method == "DELETE" {
+					return mcplib.NewToolResultText("already deleted (no-op)"), nil
+				}
+				return mcplib.NewToolResultError("not found: " + msg), nil
+			case strings.Contains(msg, "HTTP 429"):
+				return mcplib.NewToolResultError("rate limited: " + msg), nil
+			default:
+				return mcplib.NewToolResultError(msg), nil
+			}
+		}
+
+		// For GET responses, wrap bare arrays with count metadata
+		if method == "GET" {
+			trimmed := strings.TrimSpace(string(data))
+			if len(trimmed) > 0 && trimmed[0] == '[' {
+				var items []json.RawMessage
+				if json.Unmarshal(data, &items) == nil {
+					wrapped := map[string]any{
+						"count": len(items),
+						"items": items,
+					}
+					out, _ := json.Marshal(wrapped)
+					return mcplib.NewToolResultText(string(out)), nil
+				}
+			}
+		}
+		if binaryResponse {
+			out, _ := json.Marshal(map[string]any{
+				"content_encoding": "base64",
+				"data_base64":      base64.StdEncoding.EncodeToString(data),
+				"byte_count":       len(data),
+			})
+			return mcplib.NewToolResultText(string(out)), nil
+		}
+		return mcplib.NewToolResultText(string(data)), nil
+	}
+}
+
+func newMCPClient() (*client.Client, error) {
+	home, _ := os.UserHomeDir()
+	cfgPath := filepath.Join(home, ".config", "bcourses", "config.toml")
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading config: %w", err)
+	}
+	c := client.New(cfg, 60*time.Second, 0)
+	// Agents calling through MCP need fresh data every call. The on-disk
+	// response cache survives across MCP server invocations, so a
+	// DELETE/PATCH followed by a GET would otherwise return the
+	// pre-mutation snapshot for up to the cache TTL. The interactive CLI
+	// constructs its own client and is unaffected.
+	c.NoCache = true
+	return c, nil
+}
+
+func dbPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".local", "share", "bcourses", "data.db")
+}
+
+// Note: MCP tools use their own dbPath() because they are in a separate package (main, not cli).
+// The CLI's defaultDBPath() in the cli package uses the same canonical path.
+
+// validateReadOnlyQuery gates the MCP sql tool. The agent contract advertised
+// to the host is ReadOnlyHintAnnotation(true); a false annotation on a
+// mutating tool lets MCP hosts auto-approve writes and is treated as a real
+// bug per the project's agent-native security model.
+//
+// The gate is an allowlist (SELECT or WITH only) applied AFTER stripping the
+// leading whitespace, line comments, block comments, and semicolons that
+// SQLite itself ignores before parsing. A naive HasPrefix check on a
+// keyword blocklist is bypassable by prefixing the dangerous statement with
+// "/* x */" or "-- x\n" — TrimSpace strips outer whitespace but does not
+// understand SQL comment syntax. Combined with the empirical fact that
+// modernc.org/sqlite's mode=ro does NOT block VACUUM INTO (writes a snapshot
+// to a new file) or ATTACH DATABASE (opens a separate writable handle),
+// such a bypass produces silent exfiltration to an attacker-chosen path.
+//
+// SELECT and WITH are the only allowed leading keywords. WITH supports
+// SELECT-form CTEs; CTE-wrapped writes ("WITH x AS (...) INSERT ...") are
+// caught by OpenReadOnly's mode=ro one layer down. PRAGMA, ATTACH, VACUUM,
+// and every other DDL/DML keyword fail at this gate before reaching SQLite.
+func validateReadOnlyQuery(query string) error {
+	upper := strings.ToUpper(stripLeadingSQLNoise(query))
+	if !strings.HasPrefix(upper, "SELECT") && !strings.HasPrefix(upper, "WITH") {
+		return fmt.Errorf("only SELECT queries are allowed")
+	}
+	return nil
+}
+
+// stripLeadingSQLNoise removes leading whitespace, SQL line comments
+// (-- to end of line), block comments (/* ... */), and statement
+// separators (;) from query. SQLite skips these before parsing the first
+// keyword, so a security gate that does not strip them mismatches what the
+// driver actually executes.
+func stripLeadingSQLNoise(query string) string {
+	for {
+		query = strings.TrimLeft(query, " \t\r\n;")
+		switch {
+		case strings.HasPrefix(query, "--"):
+			if idx := strings.IndexByte(query, '\n'); idx >= 0 {
+				query = query[idx+1:]
+				continue
+			}
+			return ""
+		case strings.HasPrefix(query, "/*"):
+			if idx := strings.Index(query[2:], "*/"); idx >= 0 {
+				query = query[2+idx+2:]
+				continue
+			}
+			return ""
+		default:
+			return query
+		}
+	}
+}
+
+func handleSQL(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+	args := req.GetArguments()
+	query, ok := args["query"].(string)
+	if !ok || query == "" {
+		return mcplib.NewToolResultError("query is required"), nil
+	}
+
+	if err := validateReadOnlyQuery(query); err != nil {
+		return mcplib.NewToolResultError(err.Error()), nil
+	}
+
+	db, err := store.OpenReadOnly(dbPath())
+	if err != nil {
+		return mcplib.NewToolResultError(fmt.Sprintf("opening database: %v", err)), nil
+	}
+	defer db.Close()
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return mcplib.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+	}
+	defer rows.Close()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		return mcplib.NewToolResultError(fmt.Sprintf("reading columns: %v", err)), nil
+	}
+	var results []map[string]any
+	for rows.Next() {
+		values := make([]any, len(cols))
+		ptrs := make([]any, len(cols))
+		for i := range values {
+			ptrs[i] = &values[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
+			return mcplib.NewToolResultError(fmt.Sprintf("scanning row: %v", err)), nil
+		}
+		row := make(map[string]any)
+		for i, col := range cols {
+			row[col] = values[i]
+		}
+		results = append(results, row)
+	}
+	// rows.Next() stops on a mid-iteration error without failing the loop, so
+	// skipping rows.Err() would return a truncated result set as success.
+	if err := rows.Err(); err != nil {
+		return mcplib.NewToolResultError(fmt.Sprintf("reading rows: %v", err)), nil
+	}
+
+	return toolResultJSON(results)
+}
+
+// toolResultJSON renders v as the indented JSON body of an MCP text result,
+// surfacing a marshal failure as a tool error instead of empty content.
+func toolResultJSON(v any) (*mcplib.CallToolResult, error) {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return mcplib.NewToolResultError(fmt.Sprintf("encoding result: %v", err)), nil
+	}
+	return mcplib.NewToolResultText(string(data)), nil
+}
+
+func handleContext(_ context.Context, _ mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+	ctx := map[string]any{
+		"api":         "berkeley-classes",
+		"description": "Search every Berkeley section, sync the full term offline, and build conflict-free schedules from the command line.",
+		"archetype":   "generic",
+		"tool_count":  3,
+		// tool_surface tells agents which surface a capability lives on.
+		"tool_surface": "MCP exposes typed endpoint tools plus a runtime mirror of user-facing CLI commands. Endpoint tools keep typed schemas; command-mirror tools shell out to the companion bcourses binary.",
+		"resources": []map[string]any{
+			{
+				"name":        "facets",
+				"description": "Enumerate terms, subjects, and other search facets",
+				"endpoints":   []string{"list"},
+				"syncable":    true,
+			},
+			{
+				"name":        "sections",
+				"description": "View section search and detail pages",
+				"endpoints":   []string{"get", "list"},
+				"syncable":    true,
+				"searchable":  true,
+			},
+		},
+		"query_tips": []string{
+			"Pagination uses cursor-based paging. Pass page parameter for subsequent pages.",
+			"Control page size with the limit parameter (default 100).",
+			"Use the sql tool for ad-hoc analysis on synced data. Run sync first to populate the local database.",
+			"Use the search tool for full-text search across all synced resources. Faster than iterating list endpoints.",
+			"Prefer sql/search over repeated API calls when the data is already synced.",
+		},
+		// Command-mirror capabilities are exposed through MCP by shelling out
+		// to the companion CLI binary.
+		"command_mirror_capabilities": []map[string]string{
+			{"name": "Conflict-free schedule builder", "command": "schedule build", "description": "Build a valid weekly schedule from a wishlist of courses with no time overlaps.", "rationale": "Requires local join across thousands of sections, day/time math, and combinatorial search no website performs.", "via": "mcp-command-mirror"},
+			{"name": "Waitlist watcher", "command": "watch", "description": "Watch a CCN and report when open seats appear, waitlist shrinks, or capacity changes.", "rationale": "Requires periodic polling + state diff against last snapshot. The site has no notification surface.", "via": "mcp-command-mirror"},
+			{"name": "Change tracking since last sync", "command": "since", "description": "Surface new sections, cancellations, instructor swaps, and enrollment moves since the last sync.", "rationale": "Requires historical SQLite snapshots. classes.berkeley.edu has no 'what changed' view.", "via": "mcp-command-mirror"},
+			{"name": "Cross-department instructor schedule", "command": "instructor", "description": "List every section a given instructor is teaching this term, across every subject.", "rationale": "The web's instructor facet is scoped per department. Local aggregation joins all departments at once.", "via": "mcp-command-mirror"},
+			{"name": "Fast open-seat lookup by course code", "command": "open", "description": "Show every open section of a course in one command, including waitlist length.", "rationale": "Web requires opening each section detail; this is one SQL query against the local store.", "via": "mcp-command-mirror"},
+			{"name": "Conflict check between two sections", "command": "conflict", "description": "Check whether two CCNs conflict on day-of-week and time.", "rationale": "Requires structured time intervals from local store.", "via": "mcp-command-mirror"},
+		},
+		"playbook": []map[string]string{
+			{"topic": "Conflict-free schedule builder", "insight": "Requires local join across thousands of sections, day/time math, and combinatorial search no website performs."},
+			{"topic": "Waitlist watcher", "insight": "Requires periodic polling + state diff against last snapshot. The site has no notification surface."},
+			{"topic": "Change tracking since last sync", "insight": "Requires historical SQLite snapshots. classes.berkeley.edu has no 'what changed' view."},
+			{"topic": "Cross-department instructor schedule", "insight": "The web's instructor facet is scoped per department. Local aggregation joins all departments at once."},
+			{"topic": "Fast open-seat lookup by course code", "insight": "Web requires opening each section detail; this is one SQL query against the local store."},
+			{"topic": "Conflict check between two sections", "insight": "Requires structured time intervals from local store."},
+		},
+	}
+	return toolResultJSON(ctx)
+}
+
+// RegisterNovelFeatureTools is kept as a compatibility no-op for older MCP
+// mains. New generated mains call RegisterTools only; RegisterTools now
+// includes the runtime Cobra-tree mirror.
+func RegisterNovelFeatureTools(s *server.MCPServer) {
+	_ = s
+}

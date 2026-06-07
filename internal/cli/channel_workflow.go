@@ -1,0 +1,80 @@
+// Copyright 2026 ish-cs. MIT License. See LICENSE.
+
+package cli
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/spf13/cobra"
+)
+
+func newWorkflowCmd(flags *rootFlags) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:         "workflow",
+		Short:       "Compound workflows that combine multiple API operations",
+		Annotations: map[string]string{"mcp:read-only": "true"},
+		RunE:        parentNoSubcommandRunE(flags),
+	}
+	cmd.AddCommand(newWorkflowStatusCmd(flags))
+
+	return cmd
+}
+
+func newWorkflowStatusCmd(flags *rootFlags) *cobra.Command {
+	var dbPath string
+
+	cmd := &cobra.Command{
+		Use:         "status",
+		Short:       "Show local archive status and sync state for all resources",
+		Annotations: map[string]string{"mcp:read-only": "true"},
+		Example: `  # Show archive status
+  bcourses workflow status
+
+  # Show status as JSON
+  bcourses workflow status --json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if dbPath == "" {
+				dbPath = defaultDBPath("bcourses")
+			}
+			s, err := store.OpenWithContext(cmd.Context(), dbPath)
+			if err != nil {
+				return fmt.Errorf("opening store: %w", err)
+			}
+			defer s.Close()
+
+			status, err := s.Status()
+			if err != nil {
+				return err
+			}
+
+			if flags.asJSON {
+				enc := json.NewEncoder(cmd.OutOrStdout())
+				enc.SetIndent("", "  ")
+				return enc.Encode(status)
+			}
+
+			if len(status) == 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "No archived data. Add a site-specific sync command to populate the store.")
+				return nil
+			}
+
+			fmt.Fprintln(cmd.OutOrStdout(), "Archive Status:")
+			total := 0
+			for resource, count := range status {
+				fmt.Fprintf(cmd.OutOrStdout(), "  %-30s %d items\n", resource, count)
+				total += count
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "\n  Total: %d items\n", total)
+			fmt.Fprintf(cmd.OutOrStdout(), "  Store: %s\n", dbPath)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&dbPath, "db", "", "Database path")
+
+	return cmd
+}
+
+// defaultDBPath is defined in helpers.go

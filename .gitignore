@@ -1,0 +1,26 @@
+# Binaries
+bcourses
+bcourses-mcp
+build/
+dist/
+*.test
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local data
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# Go build cache (when invoked locally)
+*.out
+coverage.out
