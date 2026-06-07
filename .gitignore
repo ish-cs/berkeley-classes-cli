@@ -1,6 +1,6 @@
-# Binaries
-bcourses
-bcourses-mcp
+# Binaries (root-level only — anchored so cmd/berkeley-classes/ is NOT ignored)
+/berkeley-classes
+/berkeley-classes-mcp
 build/
 dist/
 *.test

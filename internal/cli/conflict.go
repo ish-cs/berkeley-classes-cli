@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,7 @@ func newNovelConflictCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "conflict <CCN_A> <CCN_B>",
 		Short:       "Check whether two CCNs conflict on day-of-week and time.",
-		Example:     "  bcourses conflict 29147 32104",
+		Example:     "  berkeley-classes conflict 29147 32104",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && cmd.Flags().NFlag() == 0 {
@@ -39,7 +39,7 @@ func newNovelConflictCmd(flags *rootFlags) *cobra.Command {
 				return usageErr(fmt.Errorf("invalid CCN %q (must be a positive integer)", args[1]))
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}
@@ -57,10 +57,10 @@ func newNovelConflictCmd(flags *rootFlags) *cobra.Command {
 				return err
 			}
 			if sa == nil {
-				return notFoundErr(fmt.Errorf("CCN %d not in local store — run 'bcourses sync --term <term> --subject <subj>' first", a))
+				return notFoundErr(fmt.Errorf("CCN %d not in local store — run 'berkeley-classes sync --term <term> --subject <subj>' first", a))
 			}
 			if sb == nil {
-				return notFoundErr(fmt.Errorf("CCN %d not in local store — run 'bcourses sync --term <term> --subject <subj>' first", b))
+				return notFoundErr(fmt.Errorf("CCN %d not in local store — run 'berkeley-classes sync --term <term> --subject <subj>' first", b))
 			}
 
 			daysA := parseMeetingDays(sa.MeetingDays)

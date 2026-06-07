@@ -24,10 +24,10 @@ agents that need full API coverage.
 Run 'api' with no arguments to list all interfaces.
 Run 'api <interface>' to see that interface's methods.`,
 		Example: `  # List all available interfaces
-  bcourses api
+  berkeley-classes api
 
   # Show methods for a specific interface
-  bcourses api <interface-name>`,
+  berkeley-classes api <interface-name>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			root := cmd.Root()
 

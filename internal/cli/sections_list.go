@@ -17,7 +17,7 @@ func newSectionsListCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "list",
 		Short:       "Fetch the raw HTML search results for keyword + facet filters",
-		Example:     "  bcourses sections list",
+		Example:     "  berkeley-classes sections list",
 		Annotations: map[string]string{"pp:endpoint": "sections.list", "pp:method": "GET", "pp:path": "/search/class", "mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := flags.newClient()

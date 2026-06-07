@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ish-cs/bcourses-cli/internal/bsource"
-	"github.com/ish-cs/bcourses-cli/internal/cliutil"
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/bsource"
+	"github.com/ish-cs/berkeley-classes-cli/internal/cliutil"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ func newNovelWatchCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "watch <CCN>",
 		Short:       "Watch a CCN and report when open seats appear, waitlist shrinks, or capacity changes.",
-		Example:     "  bcourses watch 29147 --interval 5m\n  bcourses watch 29202 --interval 10m --max-checks 12",
+		Example:     "  berkeley-classes watch 29147 --interval 5m\n  berkeley-classes watch 29202 --interval 10m --max-checks 12",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && cmd.Flags().NFlag() == 0 {
@@ -48,7 +48,7 @@ func newNovelWatchCmd(flags *rootFlags) *cobra.Command {
 				flagInterval = 5 * time.Minute
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}

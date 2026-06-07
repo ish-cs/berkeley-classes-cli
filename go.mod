@@ -1,4 +1,4 @@
-module github.com/ish-cs/bcourses-cli
+module github.com/ish-cs/berkeley-classes-cli
 
 go 1.26.4
 

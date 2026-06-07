@@ -16,7 +16,7 @@ func newFacetsPromotedCmd(flags *rootFlags) *cobra.Command {
 		Use:         "facets",
 		Short:       "Fetch the homepage facet sidebar listing all current terms and subject areas",
 		Long:        "Fetch the homepage facet sidebar listing all current terms and subject areas",
-		Example:     "  bcourses facets",
+		Example:     "  berkeley-classes facets",
 		Annotations: map[string]string{"pp:endpoint": "facets.list", "pp:method": "GET", "pp:path": "/", "mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := flags.newClient()

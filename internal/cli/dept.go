@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ func newNovelDeptCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "dept <code-or-name>",
 		Short:       "Department overview: total offerings, total seats, top instructors.",
-		Example:     "  bcourses dept COMPSCI --term 'Fall 2026'\n  bcourses dept 'Computer Science' --agent",
+		Example:     "  berkeley-classes dept COMPSCI --term 'Fall 2026'\n  berkeley-classes dept 'Computer Science' --agent",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && cmd.Flags().NFlag() == 0 {
@@ -36,7 +36,7 @@ func newNovelDeptCmd(flags *rootFlags) *cobra.Command {
 				return usageErr(fmt.Errorf("department code/name cannot be empty"))
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}
@@ -92,7 +92,7 @@ func newNovelDeptCmd(flags *rootFlags) *cobra.Command {
 				return flags.printJSON(cmd, stats)
 			}
 			if stats.SectionCount == 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "No sections found for department %q. Run 'bcourses sync --term <term> --subject %q' first.\n", query, query)
+				fmt.Fprintf(cmd.OutOrStdout(), "No sections found for department %q. Run 'berkeley-classes sync --term <term> --subject %q' first.\n", query, query)
 				return nil
 			}
 			out := cmd.OutOrStdout()

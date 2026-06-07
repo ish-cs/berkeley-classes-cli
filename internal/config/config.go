@@ -31,7 +31,7 @@ func Load(configPath string) (*Config, error) {
 	}
 	if path == "" {
 		home, _ := os.UserHomeDir()
-		path = filepath.Join(home, ".config", "bcourses", "config.toml")
+		path = filepath.Join(home, ".config", "berkeley-classes", "config.toml")
 	}
 	cfg.Path = path
 

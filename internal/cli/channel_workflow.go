@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -30,13 +30,13 @@ func newWorkflowStatusCmd(flags *rootFlags) *cobra.Command {
 		Short:       "Show local archive status and sync state for all resources",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		Example: `  # Show archive status
-  bcourses workflow status
+  berkeley-classes workflow status
 
   # Show status as JSON
-  bcourses workflow status --json`,
+  berkeley-classes workflow status --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dbPath == "" {
-				dbPath = defaultDBPath("bcourses")
+				dbPath = defaultDBPath("berkeley-classes")
 			}
 			s, err := store.OpenWithContext(cmd.Context(), dbPath)
 			if err != nil {

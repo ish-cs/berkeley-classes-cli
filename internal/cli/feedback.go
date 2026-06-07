@@ -34,7 +34,7 @@ func feedbackFilePath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolving home dir: %w", err)
 	}
-	dir := filepath.Join(home, ".local", "share", "bcourses")
+	dir := filepath.Join(home, ".local", "share", "berkeley-classes")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf("creating state dir: %w", err)
 	}
@@ -80,7 +80,7 @@ func postFeedback(url string, entry FeedbackEntry) error {
 		return fmt.Errorf("building feedback request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "bcourses/feedback")
+	req.Header.Set("User-Agent", "berkeley-classes/feedback")
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -99,7 +99,7 @@ func newFeedbackCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "feedback [text]",
 		Short: "Record feedback about this CLI (local by default; upstream opt-in)",
-		Long: `Feedback is captured locally first at ~/.local/share/bcourses/feedback.jsonl.
+		Long: `Feedback is captured locally first at ~/.local/share/berkeley-classes/feedback.jsonl.
 When ` + "`BERKELEY_CLASSES_FEEDBACK_ENDPOINT`" + ` is set and either --send is
 passed or ` + "`BERKELEY_CLASSES_FEEDBACK_AUTO_SEND=true`" + `, the entry is
 POSTed as JSON after the local write.
@@ -130,7 +130,7 @@ maintainer sees it.`,
 
 			entry := FeedbackEntry{
 				Text:      text,
-				CLI:       "bcourses",
+				CLI:       "berkeley-classes",
 				Version:   version,
 				AgentID:   os.Getenv("AGENT_ID"),
 				Timestamp: time.Now().UTC(),
@@ -183,9 +183,9 @@ func newFeedbackListCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List recent feedback entries",
-		Example: `  bcourses feedback list
-  bcourses feedback list --limit 5
-  bcourses feedback list --json`,
+		Example: `  berkeley-classes feedback list
+  berkeley-classes feedback list --limit 5
+  berkeley-classes feedback list --json`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := feedbackFilePath()
 			if err != nil {

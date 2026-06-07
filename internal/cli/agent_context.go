@@ -114,7 +114,7 @@ func buildAgentContext(rootCmd *cobra.Command) agentContext {
 	return agentContext{
 		SchemaVersion: agentContextSchemaVersion,
 		CLI: agentContextCLI{
-			Name:        "bcourses",
+			Name:        "berkeley-classes",
 			Description: "Search every Berkeley section, sync the full term offline, and build conflict-free schedules from the command line.",
 			Version:     rootCmd.Version,
 		},

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ func newNovelScheduleBuildCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "build",
 		Short:       "Build a valid weekly schedule from a wishlist of courses with no time overlaps.",
-		Example:     "  bcourses schedule build --term 'Fall 2026' --course 'COMPSCI 61A' --course 'MATH 1B' --course 'ENGLISH 45A'\n  bcourses schedule build --term 'Fall 2026' --course 'COMPSCI 61A' --course 'MATH 53' --max-results 5",
+		Example:     "  berkeley-classes schedule build --term 'Fall 2026' --course 'COMPSCI 61A' --course 'MATH 1B' --course 'ENGLISH 45A'\n  berkeley-classes schedule build --term 'Fall 2026' --course 'COMPSCI 61A' --course 'MATH 53' --max-results 5",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && cmd.Flags().NFlag() == 0 {
@@ -38,7 +38,7 @@ func newNovelScheduleBuildCmd(flags *rootFlags) *cobra.Command {
 				flagMaxResults = 5
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}

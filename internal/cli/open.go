@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,7 @@ func newNovelOpenCmd(flags *rootFlags) *cobra.Command {
 			}
 			code := strings.TrimSpace(args[0])
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}

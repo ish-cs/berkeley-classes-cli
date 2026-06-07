@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ish-cs/bcourses-cli/internal/client"
-	"github.com/ish-cs/bcourses-cli/internal/cliutil"
-	"github.com/ish-cs/bcourses-cli/internal/config"
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/client"
+	"github.com/ish-cs/berkeley-classes-cli/internal/cliutil"
+	"github.com/ish-cs/berkeley-classes-cli/internal/config"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -141,9 +141,9 @@ func newDoctorCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
 		Short: "Check CLI health",
-		Example: `  bcourses doctor
-  bcourses doctor --json
-  bcourses doctor --fail-on warn`,
+		Example: `  berkeley-classes doctor
+  berkeley-classes doctor --json
+  berkeley-classes doctor --fail-on warn`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			report := map[string]any{}
 
@@ -221,7 +221,7 @@ func newDoctorCmd(flags *rootFlags) *cobra.Command {
 					} else {
 						suggestion := suggestReadCommand(cmd.Root())
 						if suggestion != "" {
-							report["credentials"] = fmt.Sprintf("present, not verified. Run `%s %s` to confirm the token works end-to-end.", "bcourses", suggestion)
+							report["credentials"] = fmt.Sprintf("present, not verified. Run `%s %s` to confirm the token works end-to-end.", "berkeley-classes", suggestion)
 						} else {
 							report["credentials"] = "present, not verified. Run any read command to confirm the token works end-to-end."
 						}
@@ -237,7 +237,7 @@ func newDoctorCmd(flags *rootFlags) *cobra.Command {
 			report["cache"] = collectCacheReport(cmd.Context(), "")
 
 			// Verify mode state. Surfaced so an operator who unintentionally
-			// inherits BCOURSES_VERIFY=1 (parent shell, CI runner, container
+			// inherits BERKELEY_CLASSES_VERIFY=1 (parent shell, CI runner, container
 			// image) detects the foot-gun without inspecting a response body.
 			// Pairs with the synthetic envelope's verify_noop / reason literals
 			// as a second diagnosis anchor.
@@ -245,7 +245,7 @@ func newDoctorCmd(flags *rootFlags) *cobra.Command {
 				if cliutil.IsVerifyLiveHTTPEnv() {
 					report["verify_mode"] = "INFO ACTIVE — live HTTP opt-in (mutating verbs dial out)"
 				} else {
-					report["verify_mode"] = "INFO ACTIVE — mutating HTTP verbs short-circuit (BCOURSES_VERIFY=1; no network calls for DELETE/POST/PUT/PATCH)"
+					report["verify_mode"] = "INFO ACTIVE — mutating HTTP verbs short-circuit (BERKELEY_CLASSES_VERIFY=1; no network calls for DELETE/POST/PUT/PATCH)"
 				}
 			} else {
 				report["verify_mode"] = "normal operation"
@@ -373,14 +373,14 @@ func doctorExitForFailOn(failOn string, report map[string]any) error {
 // because the alternative is no freshness story at all.
 func collectCacheReport(ctx context.Context, staleAfterSpec string) map[string]any {
 	report := map[string]any{}
-	dbPath := defaultDBPath("bcourses")
+	dbPath := defaultDBPath("berkeley-classes")
 	report["db_path"] = dbPath
 
 	fi, err := os.Stat(dbPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			report["status"] = "unknown"
-			report["hint"] = "Database not created yet; run 'bcourses sync' to hydrate."
+			report["hint"] = "Database not created yet; run 'berkeley-classes sync' to hydrate."
 			return report
 		}
 		report["status"] = "error"
@@ -413,7 +413,7 @@ func collectCacheReport(ctx context.Context, staleAfterSpec string) map[string]a
 		// sync_state may not exist on a fresh DB that has migrated but not
 		// yet had any sync runs — treat as unknown rather than error.
 		report["status"] = "unknown"
-		report["hint"] = "No sync state recorded; run 'bcourses sync' to populate."
+		report["hint"] = "No sync state recorded; run 'berkeley-classes sync' to populate."
 		return report
 	}
 	defer rows.Close()
@@ -453,13 +453,13 @@ func collectCacheReport(ctx context.Context, staleAfterSpec string) map[string]a
 	switch {
 	case !haveAny && len(resources) == 0:
 		report["status"] = "unknown"
-		report["hint"] = "sync_state is empty; run 'bcourses sync' to hydrate."
+		report["hint"] = "sync_state is empty; run 'berkeley-classes sync' to hydrate."
 	case fresh:
 		report["status"] = "fresh"
 	default:
 		report["status"] = "stale"
 		report["oldest_age"] = oldest.Round(time.Minute).String()
-		report["hint"] = "Some resources are older than stale_after; run 'bcourses sync' to refresh."
+		report["hint"] = "Some resources are older than stale_after; run 'berkeley-classes sync' to refresh."
 	}
 	return report
 }

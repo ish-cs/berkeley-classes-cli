@@ -25,13 +25,13 @@ func newImportCmd(flags *rootFlags) *cobra.Command {
 Each line must be a valid JSON object. Failed records are logged to stderr
 but do not stop the import.`,
 		Example: `  # Import from a JSONL file
-  bcourses import <resource> --input data.jsonl
+  berkeley-classes import <resource> --input data.jsonl
 
   # Dry-run to preview without sending
-  bcourses import <resource> --input data.jsonl --dry-run
+  berkeley-classes import <resource> --input data.jsonl --dry-run
 
   # Import from stdin
-  cat data.jsonl | bcourses import <resource> --input -`,
+  cat data.jsonl | berkeley-classes import <resource> --input -`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := flags.newClient()

@@ -15,7 +15,7 @@ func newSectionsGetCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "get <slug>",
 		Short:       "Get a section by its detail-page slug, e.g. '2026-fall-compsci-61a-001-lec-001'",
-		Example:     "  bcourses sections get example-value",
+		Example:     "  berkeley-classes sections get example-value",
 		Annotations: map[string]string{"pp:endpoint": "sections.get", "pp:method": "GET", "pp:path": "/content/{slug}", "mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {

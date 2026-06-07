@@ -7,8 +7,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/ish-cs/bcourses-cli/internal/bsource"
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/bsource"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -17,14 +17,14 @@ func newTermsCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "terms",
 		Short:       "List every Berkeley term (Fall 2026, Summer A, etc.) with section counts.",
-		Example:     "  bcourses terms\n  bcourses terms --refresh --json",
+		Example:     "  berkeley-classes terms\n  berkeley-classes terms --refresh --json",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRunOK(flags) {
 				return nil
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}

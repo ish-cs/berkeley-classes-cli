@@ -26,7 +26,7 @@ func SiblingCLIPath() (string, error) {
 }
 
 func cliExecutableName(goos string) string {
-	name := "bcourses"
+	name := "berkeley-classes"
 	if goos == "windows" {
 		return name + ".exe"
 	}

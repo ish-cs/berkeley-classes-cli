@@ -18,7 +18,7 @@ const BaseURL = "https://classes.berkeley.edu"
 
 // UserAgent is the polite identifier sent on every request. Real browsers
 // will see anything; we identify as the CLI to keep ops happy.
-const UserAgent = "bcourses/0.1 (+https://github.com/ish-cs/bcourses)"
+const UserAgent = "berkeley-classes/0.1 (+https://github.com/ish-cs/berkeley-classes)"
 
 // Client is a thin wrapper around http.Client with a fixed base URL.
 type Client struct {

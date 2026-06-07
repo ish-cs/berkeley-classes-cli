@@ -5,8 +5,8 @@ package cli
 import (
 	"fmt"
 
-	"github.com/ish-cs/bcourses-cli/internal/bsource"
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/bsource"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -15,14 +15,14 @@ func newSubjectsCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "subjects",
 		Short:       "List every subject area facet (COMPSCI, MATH, ...) with section counts.",
-		Example:     "  bcourses subjects\n  bcourses subjects --refresh --json",
+		Example:     "  berkeley-classes subjects\n  berkeley-classes subjects --refresh --json",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRunOK(flags) {
 				return nil
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}

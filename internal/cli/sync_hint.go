@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ func emitSyncHints(w io.Writer, db *store.Store, resourceType string, maxAge tim
 		return
 	}
 	if !state.hasState {
-		fmt.Fprintf(w, "hint: local store has not been synced yet. Run 'bcourses sync' before trusting local results.\n")
+		fmt.Fprintf(w, "hint: local store has not been synced yet. Run 'berkeley-classes sync' before trusting local results.\n")
 		return
 	}
 	if maxAge <= 0 {
@@ -42,7 +42,7 @@ func emitSyncHints(w io.Writer, db *store.Store, resourceType string, maxAge tim
 	if age <= maxAge {
 		return
 	}
-	fmt.Fprintf(w, "hint: local store data is %s old, older than --max-age=%s. Run 'bcourses sync' to refresh.\n", syncHintRoundAge(age), maxAge)
+	fmt.Fprintf(w, "hint: local store data is %s old, older than --max-age=%s. Run 'berkeley-classes sync' to refresh.\n", syncHintRoundAge(age), maxAge)
 }
 
 func hintIfUnsynced(cmd *cobra.Command, db *store.Store, resourceType string) bool {
@@ -53,7 +53,7 @@ func hintIfUnsynced(cmd *cobra.Command, db *store.Store, resourceType string) bo
 	if err != nil || state.hasState {
 		return false
 	}
-	fmt.Fprintf(cmd.ErrOrStderr(), "hint: local store has not been synced yet. Run 'bcourses sync' before trusting local results.\n")
+	fmt.Fprintf(cmd.ErrOrStderr(), "hint: local store has not been synced yet. Run 'berkeley-classes sync' before trusting local results.\n")
 	return true
 }
 
@@ -69,7 +69,7 @@ func hintIfStale(cmd *cobra.Command, db *store.Store, resourceType string, maxAg
 	if age <= maxAge {
 		return false
 	}
-	fmt.Fprintf(cmd.ErrOrStderr(), "hint: local store data is %s old, older than --max-age=%s. Run 'bcourses sync' to refresh.\n", syncHintRoundAge(age), maxAge)
+	fmt.Fprintf(cmd.ErrOrStderr(), "hint: local store data is %s old, older than --max-age=%s. Run 'berkeley-classes sync' to refresh.\n", syncHintRoundAge(age), maxAge)
 	return true
 }
 

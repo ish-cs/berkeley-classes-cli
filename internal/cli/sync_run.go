@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ish-cs/bcourses-cli/internal/bsource"
-	"github.com/ish-cs/bcourses-cli/internal/cliutil"
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/bsource"
+	"github.com/ish-cs/berkeley-classes-cli/internal/cliutil"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +41,7 @@ func newSyncRealCmd(flags *rootFlags) *cobra.Command {
 				maxPages = 2
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}

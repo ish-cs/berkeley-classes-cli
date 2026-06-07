@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ish-cs/bcourses-cli/internal/cli"
-	"github.com/ish-cs/bcourses-cli/internal/client"
-	"github.com/ish-cs/bcourses-cli/internal/config"
-	"github.com/ish-cs/bcourses-cli/internal/mcp/cobratree"
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/cli"
+	"github.com/ish-cs/berkeley-classes-cli/internal/client"
+	"github.com/ish-cs/berkeley-classes-cli/internal/config"
+	"github.com/ish-cs/berkeley-classes-cli/internal/mcp/cobratree"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -212,11 +212,11 @@ func makeAPIHandler(method, pathTemplate string, readOnly bool, binaryResponse b
 			case strings.Contains(msg, "HTTP 401"):
 				return mcplib.NewToolResultError("authentication failed: " + msg +
 					"\nhint: check your API credentials." +
-					"\n      Run 'bcourses doctor' to check auth status."), nil
+					"\n      Run 'berkeley-classes doctor' to check auth status."), nil
 			case strings.Contains(msg, "HTTP 403"):
 				return mcplib.NewToolResultError("permission denied: " + msg +
 					"\nhint: this API is configured without credentials; the service may be blocking the request by rate limit, geography, bot protection, or endpoint policy." +
-					"\n      Run 'bcourses doctor' to check auth status."), nil
+					"\n      Run 'berkeley-classes doctor' to check auth status."), nil
 			case strings.Contains(msg, "HTTP 404"):
 				if method == "DELETE" {
 					return mcplib.NewToolResultText("already deleted (no-op)"), nil
@@ -258,7 +258,7 @@ func makeAPIHandler(method, pathTemplate string, readOnly bool, binaryResponse b
 
 func newMCPClient() (*client.Client, error) {
 	home, _ := os.UserHomeDir()
-	cfgPath := filepath.Join(home, ".config", "bcourses", "config.toml")
+	cfgPath := filepath.Join(home, ".config", "berkeley-classes", "config.toml")
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
@@ -275,7 +275,7 @@ func newMCPClient() (*client.Client, error) {
 
 func dbPath() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".local", "share", "bcourses", "data.db")
+	return filepath.Join(home, ".local", "share", "berkeley-classes", "data.db")
 }
 
 // Note: MCP tools use their own dbPath() because they are in a separate package (main, not cli).
@@ -404,7 +404,7 @@ func handleContext(_ context.Context, _ mcplib.CallToolRequest) (*mcplib.CallToo
 		"archetype":   "generic",
 		"tool_count":  3,
 		// tool_surface tells agents which surface a capability lives on.
-		"tool_surface": "MCP exposes typed endpoint tools plus a runtime mirror of user-facing CLI commands. Endpoint tools keep typed schemas; command-mirror tools shell out to the companion bcourses binary.",
+		"tool_surface": "MCP exposes typed endpoint tools plus a runtime mirror of user-facing CLI commands. Endpoint tools keep typed schemas; command-mirror tools shell out to the companion berkeley-classes binary.",
 		"resources": []map[string]any{
 			{
 				"name":        "facets",

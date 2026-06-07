@@ -3,8 +3,8 @@
 package client
 
 import (
-	"github.com/ish-cs/bcourses-cli/internal/cliutil"
-	"github.com/ish-cs/bcourses-cli/internal/config"
+	"github.com/ish-cs/berkeley-classes-cli/internal/cliutil"
+	"github.com/ish-cs/berkeley-classes-cli/internal/config"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-const BinaryResponseHeader = "X-Bcourses-Binary-Response"
+const BinaryResponseHeader = "X-Berkeley-Classes-Binary-Response"
 
 type Client struct {
 	BaseURL         string
@@ -70,7 +70,7 @@ func newHTTPClient(timeout time.Duration, jar http.CookieJar) *http.Client {
 
 func New(cfg *config.Config, timeout time.Duration, rateLimit float64) *Client {
 	homeDir, _ := os.UserHomeDir()
-	cacheDir := filepath.Join(homeDir, ".cache", "bcourses", "http")
+	cacheDir := filepath.Join(homeDir, ".cache", "berkeley-classes", "http")
 	httpClient := newHTTPClient(timeout, nil)
 	c := &Client{
 		BaseURL:    strings.TrimRight(cfg.BaseURL, "/"),
@@ -313,7 +313,7 @@ func (c *Client) PostWithParamsAndHeaders(ctx context.Context, path string, para
 // by read-only operations that ride a mutating verb on the wire (GraphQL
 // queries, JSON-RPC reads, POST-based search endpoints). The verify-mode
 // short-circuit does not fire for these calls; the request reaches the
-// real transport even under BCOURSES_VERIFY=1 without LIVE_HTTP=1.
+// real transport even under BERKELEY_CLASSES_VERIFY=1 without LIVE_HTTP=1.
 func (c *Client) PostQueryWithParams(ctx context.Context, path string, params map[string]string, body any) (json.RawMessage, int, error) {
 	return c.doRead(ctx, "POST", path, params, body, nil)
 }
@@ -390,7 +390,7 @@ func (c *Client) PatchWithParamsAndHeaders(ctx context.Context, path string, par
 
 // isMutatingVerb reports whether the HTTP method writes server state.
 // Used by do()'s verify-mode short-circuit to gate dial-out: under
-// BCOURSES_VERIFY=1 (without LIVE_HTTP=1 opt-in), generated
+// BERKELEY_CLASSES_VERIFY=1 (without LIVE_HTTP=1 opt-in), generated
 // commands must not actually issue mutating requests, even if a
 // handler-level dry-run check was missed.
 func isMutatingVerb(method string) bool {
@@ -453,7 +453,7 @@ func (c *Client) doRead(ctx context.Context, method, path string, params map[str
 // gate. Plain do() callers leave it false and get the usual short-circuit.
 func (c *Client) doInternal(ctx context.Context, method, path string, params map[string]string, body any, headerOverrides map[string]string, readOnlyIntent bool) (json.RawMessage, int, error) {
 	// Verify-mode transport-layer gate. When the verifier (or any consumer
-	// that sets BCOURSES_VERIFY=1) drives a mutating verb without
+	// that sets BERKELEY_CLASSES_VERIFY=1) drives a mutating verb without
 	// the LIVE_HTTP=1 opt-in, return a synthetic envelope without dialing,
 	// minting auth, or touching the cache. The verify pipeline itself
 	// sets both env vars in mock mode so its httptest server still sees
@@ -528,7 +528,7 @@ func (c *Client) doInternal(ctx context.Context, method, path string, params map
 		if authHeader != "" {
 			req.Header.Set("Authorization", authHeader)
 		}
-		req.Header.Set("User-Agent", "bcourses/0.1.0 (+https://github.com/ish-cs/bcourses-cli)")
+		req.Header.Set("User-Agent", "berkeley-classes/0.1.0 (+https://github.com/ish-cs/berkeley-classes-cli)")
 		if c.Config != nil {
 			for k, v := range c.Config.Headers {
 				req.Header.Set(k, v)
@@ -543,7 +543,7 @@ func (c *Client) doInternal(ctx context.Context, method, path string, params map
 			req.Header.Del(BinaryResponseHeader)
 		}
 		if req.Header.Get("User-Agent") == "" {
-			req.Header.Set("User-Agent", "bcourses/0.1.0")
+			req.Header.Set("User-Agent", "berkeley-classes/0.1.0")
 		}
 		// Go's net/http omits Accept by default; browsers, curl, and other
 		// stdlibs always send it. Fingerprint-checking WAFs (Imperva, Akamai,

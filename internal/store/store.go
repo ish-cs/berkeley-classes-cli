@@ -1,6 +1,6 @@
 // Copyright 2026 ish-cs. MIT License. See LICENSE.
 
-// Package store provides local SQLite persistence for bcourses.
+// Package store provides local SQLite persistence for berkeley-classes.
 // Uses modernc.org/sqlite (pure Go, no CGO) for zero-dependency cross-compilation.
 // FTS5 full-text search indexes are created for searchable content.
 package store

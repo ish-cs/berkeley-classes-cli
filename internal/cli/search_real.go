@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ish-cs/bcourses-cli/internal/bsource"
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/bsource"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ func newSearchRealCmd(flags *rootFlags) *cobra.Command {
 		Use:         "find",
 		Short:       "Search every Berkeley class across all subjects and terms.",
 		Long:        "Hand-written search against https://classes.berkeley.edu/search/class. Uses local store for term/subject resolution when available, otherwise falls back to live facet lookup.",
-		Example:     "  bcourses find --subject 'Computer Science' --term 'Fall 2026' --open-only\n  bcourses find --keywords 'CS 61A' --term 'Fall 2026' --agent",
+		Example:     "  berkeley-classes find --subject 'Computer Science' --term 'Fall 2026' --open-only\n  berkeley-classes find --keywords 'CS 61A' --term 'Fall 2026' --agent",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().NFlag() == 0 && len(args) == 0 {
@@ -43,7 +43,7 @@ func newSearchRealCmd(flags *rootFlags) *cobra.Command {
 				maxScanPages = 5
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}

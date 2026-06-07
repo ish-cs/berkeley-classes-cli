@@ -15,7 +15,7 @@ import "os"
 // short-circuit with a synthetic envelope and never dial. The verifier
 // itself opts back in to the real wire path via VerifyLiveHTTPEnvVar
 // so its httptest mock-server flow keeps exercising the real client.
-const VerifyEnvVar = "BCOURSES_VERIFY"
+const VerifyEnvVar = "BERKELEY_CLASSES_VERIFY"
 
 // VerifyLiveHTTPEnvVar opts a verify-mode subprocess back in to the
 // real HTTP wire path for mutating verbs. It is intentionally
@@ -28,14 +28,14 @@ const VerifyEnvVar = "BCOURSES_VERIFY"
 // requests no-op. Live verifiers (live_dogfood, workflow_verify) strip
 // both vars from subprocess env entirely so they cannot inherit a
 // verify-mode short-circuit from the operator's shell.
-const VerifyLiveHTTPEnvVar = "BCOURSES_VERIFY_LIVE_HTTP"
+const VerifyLiveHTTPEnvVar = "BERKELEY_CLASSES_VERIFY_LIVE_HTTP"
 
 // DogfoodEnvVar is the env var the live integration test runner
 // sets in every subprocess. Distinct from VerifyEnvVar because dogfood
 // is a real-network matrix: commands may still perform actual API
 // calls, just curtailed (paginate-once, bounded crawl, etc.) so the
 // runner's flat 30s per-command timeout doesn't trip.
-const DogfoodEnvVar = "BCOURSES_DOGFOOD"
+const DogfoodEnvVar = "BERKELEY_CLASSES_DOGFOOD"
 
 // IsVerifyEnv reports whether the current process is running under the
 // verifier harness in mock mode. Generated commands with side

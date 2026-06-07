@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ish-cs/bcourses-cli/internal/store"
+	"github.com/ish-cs/berkeley-classes-cli/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ func newNovelInstructorCmd(flags *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "instructor <name-fragment>",
 		Short:       "List every section a given instructor is teaching this term, across every subject.",
-		Example:     "  bcourses instructor 'John DeNero' --term 'Fall 2026'\n  bcourses instructor DeNero --agent",
+		Example:     "  berkeley-classes instructor 'John DeNero' --term 'Fall 2026'\n  berkeley-classes instructor DeNero --agent",
 		Annotations: map[string]string{"mcp:read-only": "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 && cmd.Flags().NFlag() == 0 {
@@ -35,7 +35,7 @@ func newNovelInstructorCmd(flags *rootFlags) *cobra.Command {
 				return usageErr(fmt.Errorf("name fragment cannot be empty"))
 			}
 
-			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("bcourses"))
+			db, err := store.OpenWithContext(cmd.Context(), defaultDBPath("berkeley-classes"))
 			if err != nil {
 				return fmt.Errorf("opening store: %w", err)
 			}
