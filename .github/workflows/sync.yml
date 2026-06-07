@@ -21,42 +21,11 @@ jobs:
       - name: Build berkeley-classes
         run: go build -o berkeley-classes ./cmd/berkeley-classes
 
-      - name: Sync all subjects
-        run: |
-          set +e  # one subject failing must not skip the rest or the push
-          failures=0
-          subjects=(
-            'Computer Science'
-            'Electrical Engineering and Computer Sciences'
-            'Mathematics'
-            'Statistics'
-            'Data Science'
-            'Computing, Data Science, and Society'
-            'Economics'
-            'Physics'
-            'Chemistry'
-            'Mechanical Engineering'
-            'Molecular and Cell Biology'
-            'Cognitive Science'
-            'English'
-            'History'
-            'College Writing Programs'
-            'Earth and Planetary Science'
-          )
-          for s in "${subjects[@]}"; do
-            echo "::group::Sync $s"
-            if ! ./berkeley-classes sync --term 'Fall 2026' --subject "$s" --max-pages 50; then
-              echo "::warning::sync failed for $s"
-              failures=$((failures + 1))
-            fi
-            echo "::endgroup::"
-          done
-          echo "Per-subject failures: $failures"
-          # Don't exit non-zero unless EVERY subject failed
-          if [ "$failures" -ge "${#subjects[@]}" ]; then
-            echo "::error::All subjects failed"
-            exit 1
-          fi
+      - name: Sync every Fall 2026 section
+        # Walking the whole term in one search (~290 pages of 20 sections each)
+        # captures every department, not just the previously hand-picked 16 —
+        # critical for breadth filter coverage.
+        run: ./berkeley-classes sync --term 'Fall 2026' --max-pages 400
 
       - name: Push to Supabase
         env:
