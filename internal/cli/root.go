@@ -255,6 +255,7 @@ See README.md or the bundled SKILL.md for recipes.`,
 	rootCmd.AddCommand(newNotifyCmd(flags))
 	rootCmd.AddCommand(newPushCmd(flags))
 	rootCmd.AddCommand(newIngestMetaCmd(flags))
+	rootCmd.AddCommand(newIngestBreadthsCmd(flags))
 	rootCmd.AddCommand(newSearchRealCmd(flags))
 	rootCmd.AddCommand(newTermsCmd(flags))
 	rootCmd.AddCommand(newSubjectsCmd(flags))
