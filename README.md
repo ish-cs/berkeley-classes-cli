@@ -8,6 +8,66 @@ Built by a Berkeley student for Berkeley students.
 
 ---
 
+## See it in action
+
+**Department overview — one command:**
+
+```text
+$ bcourses dept COMPSCI --term 'Fall 2026'
+
+Department: COMPSCI  (term: Fall 2026)
+Sections:      53
+Distinct courses: 40
+Open seats:    607
+Top instructors (by section count):
+Instructor     Sections
+Dan Garcia     6
+Armando Fox    4
+Josh Grossman  4
+Alexei Efros   2
+Allon Wagner   2
+```
+
+**Side-by-side section comparison with conflict verdict:**
+
+```text
+$ bcourses compare 29147 29179
+
+Field        CCN 29147                                 CCN 29179
+Course       COMPSCI 61A LEC 001                       COMPSCI 61B LEC 001
+Title        The Structure and Interpretation of C...  Data Structures
+Instructors  Kay Ousterhout, John DeNero               Joshua A Hug, Manuel A Sabin
+Days         Mo We Fr                                  Mo We Fr
+Time         12:00 pm - 12:59 pm                       02:00 pm - 02:59 pm
+Location     Wheeler 150                               Wheeler 150
+Units        4                                         4
+Open seats   64                                        0
+Overlap on [Mo We Fr] but times do not collide
+```
+
+**Build a conflict-free schedule from a wishlist:**
+
+```text
+$ bcourses schedule build --term 'Fall 2026' \
+    --course 'COMPSCI 61A' --course 'COMPSCI 70' --course 'ECON 1'
+
+Option 1
+  COMPSCI 61A     LEC   #29147  Mo, We, Fr  12:00 pm - 12:59 pm
+  COMPSCI 70      LEC   #29086  Tu, Th      03:30 pm - 04:59 pm
+  ECON 1          LEC   #21923  Mo, We      01:00 pm - 01:59 pm
+```
+
+**Find an open seat fast:**
+
+```text
+$ bcourses open 'COMPSCI 61A' --term 'Fall 2026'
+
+CCN    Course       Type  Sec  Open  Enrolled  Waitlist  Cap  Days        Time
+29147  COMPSCI 61A  LEC   001  64    0         0         0    Mo, We, Fr  12:00 pm - 12:59 pm
+```
+
+---
+
 ## What it does
 
 - **Search every section** by keyword, instructor, days, time window, units, course level, breadth requirement, open-seats-only, and more — all offline once you sync.

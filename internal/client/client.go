@@ -313,7 +313,7 @@ func (c *Client) PostWithParamsAndHeaders(ctx context.Context, path string, para
 // by read-only operations that ride a mutating verb on the wire (GraphQL
 // queries, JSON-RPC reads, POST-based search endpoints). The verify-mode
 // short-circuit does not fire for these calls; the request reaches the
-// real transport even under PRINTING_PRESS_VERIFY=1 without LIVE_HTTP=1.
+// real transport even under BCOURSES_VERIFY=1 without LIVE_HTTP=1.
 func (c *Client) PostQueryWithParams(ctx context.Context, path string, params map[string]string, body any) (json.RawMessage, int, error) {
 	return c.doRead(ctx, "POST", path, params, body, nil)
 }
@@ -390,7 +390,7 @@ func (c *Client) PatchWithParamsAndHeaders(ctx context.Context, path string, par
 
 // isMutatingVerb reports whether the HTTP method writes server state.
 // Used by do()'s verify-mode short-circuit to gate dial-out: under
-// PRINTING_PRESS_VERIFY=1 (without LIVE_HTTP=1 opt-in), generated
+// BCOURSES_VERIFY=1 (without LIVE_HTTP=1 opt-in), generated
 // commands must not actually issue mutating requests, even if a
 // handler-level dry-run check was missed.
 func isMutatingVerb(method string) bool {
@@ -453,7 +453,7 @@ func (c *Client) doRead(ctx context.Context, method, path string, params map[str
 // gate. Plain do() callers leave it false and get the usual short-circuit.
 func (c *Client) doInternal(ctx context.Context, method, path string, params map[string]string, body any, headerOverrides map[string]string, readOnlyIntent bool) (json.RawMessage, int, error) {
 	// Verify-mode transport-layer gate. When the verifier (or any consumer
-	// that sets PRINTING_PRESS_VERIFY=1) drives a mutating verb without
+	// that sets BCOURSES_VERIFY=1) drives a mutating verb without
 	// the LIVE_HTTP=1 opt-in, return a synthetic envelope without dialing,
 	// minting auth, or touching the cache. The verify pipeline itself
 	// sets both env vars in mock mode so its httptest server still sees

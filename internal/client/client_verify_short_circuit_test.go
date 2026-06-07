@@ -46,7 +46,7 @@ func newClientWithRecorder(t *testing.T) (*Client, *recordingRoundTripper) {
 }
 
 // TestClient_VerifyShortCircuit_MutatingVerbs pins the transport-layer
-// short-circuit emitted by client.go.tmpl. Under PRINTING_PRESS_VERIFY=1
+// short-circuit emitted by client.go.tmpl. Under BCOURSES_VERIFY=1
 // with no LIVE_HTTP opt-in, every mutating verb (DELETE/POST/PUT/PATCH)
 // must return a synthetic envelope without dialing.
 //
@@ -58,10 +58,10 @@ func TestClient_VerifyShortCircuit_MutatingVerbs(t *testing.T) {
 	for _, verb := range []string{"DELETE", "POST", "PUT", "PATCH"} {
 		verb := verb
 		t.Run(verb, func(t *testing.T) {
-			t.Setenv("PRINTING_PRESS_VERIFY", "1")
+			t.Setenv("BCOURSES_VERIFY", "1")
 			// LIVE_HTTP must NOT be set for the short-circuit branch.
 			// Explicit unset defends against a stale value in the parent env.
-			t.Setenv("PRINTING_PRESS_VERIFY_LIVE_HTTP", "")
+			t.Setenv("BCOURSES_VERIFY_LIVE_HTTP", "")
 			c, rec := newClientWithRecorder(t)
 
 			body, status, err := c.do(context.Background(), verb, "/test", nil, nil, nil)
@@ -101,8 +101,8 @@ func TestClient_VerifyShortCircuit_MutatingVerbs(t *testing.T) {
 // server depends on this opt-in path to receive mutating requests so its
 // pass/fail assertions can run against real wire-format responses.
 func TestClient_VerifyShortCircuit_LiveHTTPOptIn(t *testing.T) {
-	t.Setenv("PRINTING_PRESS_VERIFY", "1")
-	t.Setenv("PRINTING_PRESS_VERIFY_LIVE_HTTP", "1")
+	t.Setenv("BCOURSES_VERIFY", "1")
+	t.Setenv("BCOURSES_VERIFY_LIVE_HTTP", "1")
 	c, rec := newClientWithRecorder(t)
 
 	_, _, _ = c.do(context.Background(), "DELETE", "/test", nil, nil, nil)
@@ -116,8 +116,8 @@ func TestClient_VerifyShortCircuit_LiveHTTPOptIn(t *testing.T) {
 // verify env vars set, mutating verbs dial normally.
 func TestClient_VerifyShortCircuit_NoEnv(t *testing.T) {
 	// Explicitly unset to defend against test-runner inherited values.
-	t.Setenv("PRINTING_PRESS_VERIFY", "")
-	t.Setenv("PRINTING_PRESS_VERIFY_LIVE_HTTP", "")
+	t.Setenv("BCOURSES_VERIFY", "")
+	t.Setenv("BCOURSES_VERIFY_LIVE_HTTP", "")
 	c, rec := newClientWithRecorder(t)
 
 	_, _, _ = c.do(context.Background(), "DELETE", "/test", nil, nil, nil)
@@ -129,12 +129,12 @@ func TestClient_VerifyShortCircuit_NoEnv(t *testing.T) {
 
 // TestClient_VerifyShortCircuit_GETControl pins that the gate is
 // verb-specific: GET requests are never short-circuited, even under
-// PRINTING_PRESS_VERIFY=1, because they cannot mutate remote state.
+// BCOURSES_VERIFY=1, because they cannot mutate remote state.
 // A regression that broadens isMutatingVerb to include GET would break
 // every CLI's cached-fallback and list/show paths under verify mode.
 func TestClient_VerifyShortCircuit_GETControl(t *testing.T) {
-	t.Setenv("PRINTING_PRESS_VERIFY", "1")
-	t.Setenv("PRINTING_PRESS_VERIFY_LIVE_HTTP", "")
+	t.Setenv("BCOURSES_VERIFY", "1")
+	t.Setenv("BCOURSES_VERIFY_LIVE_HTTP", "")
 	c, rec := newClientWithRecorder(t)
 
 	_, _, _ = c.do(context.Background(), "GET", "/test", nil, nil, nil)
@@ -147,15 +147,15 @@ func TestClient_VerifyShortCircuit_GETControl(t *testing.T) {
 // TestClient_VerifyShortCircuit_ReadOnlyPOST pins the doRead bypass: a
 // POST routed through doRead (the path PostQuery* takes for GraphQL
 // queries, JSON-RPC reads, and POST-based search) must NOT short-circuit
-// under PRINTING_PRESS_VERIFY=1, because the operation does not mutate
+// under BCOURSES_VERIFY=1, because the operation does not mutate
 // remote state. Without this, an inherited verify env silently breaks
 // every read on a shared-endpoint API.
 func TestClient_VerifyShortCircuit_ReadOnlyPOST(t *testing.T) {
 	for _, verb := range []string{"POST", "PUT", "PATCH"} {
 		verb := verb
 		t.Run(verb, func(t *testing.T) {
-			t.Setenv("PRINTING_PRESS_VERIFY", "1")
-			t.Setenv("PRINTING_PRESS_VERIFY_LIVE_HTTP", "")
+			t.Setenv("BCOURSES_VERIFY", "1")
+			t.Setenv("BCOURSES_VERIFY_LIVE_HTTP", "")
 			c, rec := newClientWithRecorder(t)
 
 			_, _, _ = c.doRead(context.Background(), verb, "/test", nil, nil, nil)

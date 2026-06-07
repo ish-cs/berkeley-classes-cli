@@ -237,7 +237,7 @@ func newDoctorCmd(flags *rootFlags) *cobra.Command {
 			report["cache"] = collectCacheReport(cmd.Context(), "")
 
 			// Verify mode state. Surfaced so an operator who unintentionally
-			// inherits PRINTING_PRESS_VERIFY=1 (parent shell, CI runner, container
+			// inherits BCOURSES_VERIFY=1 (parent shell, CI runner, container
 			// image) detects the foot-gun without inspecting a response body.
 			// Pairs with the synthetic envelope's verify_noop / reason literals
 			// as a second diagnosis anchor.
@@ -245,7 +245,7 @@ func newDoctorCmd(flags *rootFlags) *cobra.Command {
 				if cliutil.IsVerifyLiveHTTPEnv() {
 					report["verify_mode"] = "INFO ACTIVE — live HTTP opt-in (mutating verbs dial out)"
 				} else {
-					report["verify_mode"] = "INFO ACTIVE — mutating HTTP verbs short-circuit (PRINTING_PRESS_VERIFY=1; no network calls for DELETE/POST/PUT/PATCH)"
+					report["verify_mode"] = "INFO ACTIVE — mutating HTTP verbs short-circuit (BCOURSES_VERIFY=1; no network calls for DELETE/POST/PUT/PATCH)"
 				}
 			} else {
 				report["verify_mode"] = "normal operation"
